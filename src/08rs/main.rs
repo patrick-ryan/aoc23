@@ -90,11 +90,9 @@ fn get_steps_to_end(
 
 #[derive(Debug)]
 struct NodeTrack {
-    start_node: String,
     visited: Vec<(String, String)>,
     end_distances: Vec<i64>,
     frozen_loop: bool,
-    step: i64,
 }
 
 fn get_steps_to_end_2(
@@ -106,14 +104,18 @@ fn get_steps_to_end_2(
         .keys()
         .filter(|x| x.ends_with('A'))
         .map(|x| NodeTrack {
-            start_node: x.clone(),
+            // store the path of each track, identified by its starting node;
+            // includes the full instruction sequence that was taken to get to
+            // each node
             visited: vec![(
                 instructions[0].to_string(),
                 x.clone(),
             )],
+            // how many steps until an end state was found
             end_distances: Vec::new(),
+            // the track looped around once, we no longer need to keep track
+            // of its visited path (since it will cycle)
             frozen_loop: false,
-            step: 0,
         })
         .collect_vec();
 
@@ -137,15 +139,8 @@ fn get_steps_to_end_2(
         for track in
             node_tracks.iter_mut().filter(|nt| !nt.frozen_loop)
         {
-            let current_node = track
-                .visited
-                .last()
-                .unwrap_or(&(
-                    current_instruction_char.to_string(),
-                    track.start_node.clone(),
-                ))
-                .1
-                .clone();
+            let current_node =
+                track.visited.last().unwrap().1.clone();
 
             let next_node;
             if current_instruction_char == 'L' {
@@ -197,7 +192,6 @@ fn get_steps_to_end_2(
                 new_end_distances.push(
                     (cycle_len as i64) - last_step + first_step,
                 );
-                track.step = track.end_distances[0];
                 track.end_distances = new_end_distances;
             } else {
                 // track continues
@@ -214,7 +208,7 @@ fn get_steps_to_end_2(
     }
 
     // use LCM to compute the first step where all node tracks have reached an end;
-    // I cheated and looked at the end_distances, there is only ever one per track,
+    // I cheated and looked at the end states, there is only ever one per track,
     // but this could be pretty easily updated to cartesian product the different
     // end distances of all tracks to do LCM on
     return node_tracks
